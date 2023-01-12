@@ -1,8 +1,30 @@
 import bcrypt from "bcryptjs";
-import { Jwt } from "jsonwebtoken";
-import userModel from "../models/user";
+import jwt from "jsonwebtoken";
+import userModel from "../models/user.js";
 
 const secret = "tourapp?123";
+
+export const signin = async (req, res) => {
+  const { email, password } = req?.body;
+  try {
+    const oldUser = await userModel.findOne({ email });
+    if (!oldUser)
+      return res.status(404).json({ message: "User doesn't exist" });
+    const isPasswordCorrect = await bcrypt.compare(password, oldUser?.password);
+    if (!isPasswordCorrect)
+      return res.status(400).json({ message: "Invalid Credentials" });
+
+    const token = jwt.sign(
+      { email: oldUser?.email, id: oldUser?._id },
+      secret,
+      { expiresIn: "1h" }
+    );
+    res.status(200).json({ result: oldUser, token });
+  } catch (err) {
+    res.status(500).json({ message: "something went wrong" });
+    console.log("error", err);
+  }
+};
 
 export const signup = async (req, resp) => {
   const { email, password, firstName, lastName } = req.body;
